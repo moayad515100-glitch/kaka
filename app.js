@@ -634,8 +634,11 @@ class Game {
       this.renderLevelGrid(); this.showScreen(this.levelSelectModal);
     });
 
+    // تشغيل اللعب التعاوني المحلي (نفس الجهاز)
     document.getElementById('btn-local-coop').addEventListener('click', () => {
-      this.gameMode = 'coop_local'; this.startLevel(1);
+      this.gameMode = 'coop_local';
+      this.showScreen(null); // إخفاء القوائم وتنشيط نمط اللعب
+      this.startLevel(1);
     });
 
     document.getElementById('btn-online-coop').addEventListener('click', () => {
@@ -674,8 +677,11 @@ class Game {
       setTimeout(() => document.getElementById('btn-copy-code').textContent = 'نسخ 📋', 2000);
     });
 
+    // تشغيل اللعب أونلاين للمستضيف (Host)
     document.getElementById('btn-start-online-host').addEventListener('click', () => {
-      this.gameMode = 'coop_online'; this.startLevel(1);
+      this.gameMode = 'coop_online';
+      this.showScreen(null); // إخفاء القوائم وتنشيط نمط اللعب
+      this.startLevel(1);
       this.net.send({ type: 'start_game', levelId: 1 });
     });
 
@@ -795,7 +801,9 @@ class Game {
 
   handleNetworkData(data) {
     if (data.type === 'start_game') {
-      this.gameMode = 'coop_online'; this.startLevel(data.levelId);
+      this.gameMode = 'coop_online';
+      this.showScreen(null); // إخفاء القوائم تلقائياً للاعب الثاني لبدء اللعبة
+      this.startLevel(data.levelId);
     } else if (data.type === 'p2_input' && this.players[1]) {
       this.players[1].remoteKeys = data.keys;
     }
