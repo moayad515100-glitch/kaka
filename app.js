@@ -31,10 +31,8 @@ class SoundEngine {
     osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.15);
     gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.15);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.15);
   }
 
   playPeeJump() {
@@ -48,10 +46,8 @@ class SoundEngine {
     osc.frequency.exponentialRampToValueAtTime(700, this.ctx.currentTime + 0.12);
     gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.12);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.12);
   }
 
   playFlush() {
@@ -61,9 +57,7 @@ class SoundEngine {
     const bufferSize = this.ctx.sampleRate * 1.2;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
     const noise = this.ctx.createBufferSource();
     noise.buffer = buffer;
     const filter = this.ctx.createBiquadFilter();
@@ -74,11 +68,8 @@ class SoundEngine {
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.2);
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-    noise.start();
-    noise.stop(this.ctx.currentTime + 1.2);
+    noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+    noise.start(); noise.stop(this.ctx.currentTime + 1.2);
   }
 
   playBossHit() {
@@ -92,10 +83,8 @@ class SoundEngine {
     osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
     gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.3);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.3);
   }
 
   playHurt() {
@@ -109,10 +98,8 @@ class SoundEngine {
     osc.frequency.setValueAtTime(80, this.ctx.currentTime + 0.1);
     gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.2);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + 0.2);
   }
 
   playVictory() {
@@ -123,14 +110,11 @@ class SoundEngine {
     notes.forEach((freq, i) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = freq;
+      osc.type = 'triangle'; osc.frequency.value = freq;
       gain.gain.setValueAtTime(0.3, this.ctx.currentTime + i * 0.12);
       gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.12 + 0.3);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(this.ctx.currentTime + i * 0.12);
-      osc.stop(this.ctx.currentTime + i * 0.12 + 0.3);
+      osc.connect(gain); gain.connect(this.ctx.destination);
+      osc.start(this.ctx.currentTime + i * 0.12); osc.stop(this.ctx.currentTime + i * 0.12 + 0.3);
     });
   }
 }
@@ -140,11 +124,7 @@ const sounds = new SoundEngine();
 // 2. NETWORK P2P MANAGER
 class NetworkManager {
   constructor() {
-    this.peer = null;
-    this.conn = null;
-    this.isHost = false;
-    this.isConnected = false;
-    this.roomCode = '';
+    this.peer = null; this.conn = null; this.isHost = false; this.isConnected = false; this.roomCode = '';
   }
 
   createRoom(onCodeGenerated, onPeerConnected, onDataReceived) {
@@ -153,18 +133,13 @@ class NetworkManager {
       this.isHost = true;
       const randomCode = 'KAKA-' + Math.floor(1000 + Math.random() * 9000);
       this.roomCode = randomCode;
-
       this.peer = new Peer(randomCode);
 
-      this.peer.on('open', (id) => {
-        if (onCodeGenerated) onCodeGenerated(id);
-      });
-
+      this.peer.on('open', (id) => { if (onCodeGenerated) onCodeGenerated(id); });
       this.peer.on('connection', (connection) => {
         this.conn = connection;
         this.setupConnectionListeners(onPeerConnected, onDataReceived);
       });
-
       this.peer.on('error', (err) => console.error('Peer error:', err));
     } catch (e) {
       console.warn('Network P2P Warning:', e);
@@ -176,17 +151,13 @@ class NetworkManager {
       if (typeof Peer === 'undefined') return;
       this.isHost = false;
       this.roomCode = code.toUpperCase().trim();
-
       this.peer = new Peer();
 
       this.peer.on('open', () => {
         this.conn = this.peer.connect(this.roomCode);
         this.setupConnectionListeners(onPeerConnected, onDataReceived);
       });
-
-      this.peer.on('error', (err) => {
-        if (onError) onError(err);
-      });
+      this.peer.on('error', (err) => { if (onError) onError(err); });
     } catch (e) {
       if (onError) onError(e);
     }
@@ -194,25 +165,13 @@ class NetworkManager {
 
   setupConnectionListeners(onPeerConnected, onDataReceived) {
     if (!this.conn) return;
-
-    this.conn.on('open', () => {
-      this.isConnected = true;
-      if (onPeerConnected) onPeerConnected();
-    });
-
-    this.conn.on('data', (data) => {
-      if (onDataReceived) onDataReceived(data);
-    });
-
-    this.conn.on('close', () => {
-      this.isConnected = false;
-    });
+    this.conn.on('open', () => { this.isConnected = true; if (onPeerConnected) onPeerConnected(); });
+    this.conn.on('data', (data) => { if (onDataReceived) onDataReceived(data); });
+    this.conn.on('close', () => { this.isConnected = false; });
   }
 
   send(data) {
-    if (this.conn && this.isConnected) {
-      this.conn.send(data);
-    }
+    if (this.conn && this.isConnected) this.conn.send(data);
   }
 }
 
@@ -220,12 +179,9 @@ class NetworkManager {
 class Particle {
   constructor(x, y, vx, vy, color, size, life, shape = 'circle') {
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
-    this.color = color; this.size = size; this.maxLife = life; this.life = life;
-    this.shape = shape;
+    this.color = color; this.size = size; this.maxLife = life; this.life = life; this.shape = shape;
   }
-  update() {
-    this.x += this.vx; this.y += this.vy; this.vy += 0.15; this.life -= 1;
-  }
+  update() { this.x += this.vx; this.y += this.vy; this.vy += 0.15; this.life -= 1; }
   draw(ctx) {
     const alpha = Math.max(0, this.life / this.maxLife);
     ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = this.color;
@@ -294,10 +250,7 @@ class PhysicsEngine {
           player.grounded = true;
           player.jumpCount = 0;
           if (plat.isMoving) player.x += plat.vx || 0;
-          if (plat.isSpring) {
-            player.vy = -15;
-            player.scaleY = 1.5;
-          }
+          if (plat.isSpring) { player.vy = -15; player.scaleY = 1.5; }
         }
       }
     }
@@ -398,11 +351,9 @@ class Player {
   }
 
   drawKaka(ctx) {
-    // Red Hero Cape
     ctx.fillStyle = '#dc2626';
     ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(-24, 20 + Math.sin(this.animFrame) * 4); ctx.lineTo(-5, 18); ctx.fill();
 
-    // Poop body
     const gradient = ctx.createLinearGradient(0, -20, 0, 20);
     gradient.addColorStop(0, '#f59e0b'); gradient.addColorStop(0.3, '#d97706'); gradient.addColorStop(1, '#78350f');
     ctx.fillStyle = gradient;
@@ -412,17 +363,14 @@ class Player {
     ctx.beginPath(); ctx.ellipse(0, -10, 11, 7, 0, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(2, -17, 5, 0, Math.PI * 2); ctx.fill();
 
-    // Crown
     ctx.fillStyle = '#fbbf24';
     ctx.beginPath(); ctx.moveTo(-8, -20); ctx.lineTo(-10, -28); ctx.lineTo(-4, -23); ctx.lineTo(0, -30); ctx.lineTo(4, -23); ctx.lineTo(10, -28); ctx.lineTo(8, -20); ctx.closePath(); ctx.fill();
 
-    // Eyes
     ctx.fillStyle = '#ffffff';
     ctx.beginPath(); ctx.arc(4, -4, 5, 0, Math.PI * 2); ctx.arc(12, -4, 5, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#000000';
     ctx.beginPath(); ctx.arc(5, -4, 2.5, 0, Math.PI * 2); ctx.arc(13, -4, 2.5, 0, Math.PI * 2); ctx.fill();
 
-    // Smile
     ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(8, 4, 4, 0, Math.PI); ctx.stroke();
   }
@@ -434,7 +382,6 @@ class Player {
 
     ctx.beginPath(); ctx.moveTo(0, -22); ctx.bezierCurveTo(15, -5, 20, 10, 20, 14); ctx.arc(0, 14, 20, 0, Math.PI); ctx.bezierCurveTo(-20, 10, -15, -5, 0, -22); ctx.fill();
 
-    // Cool Sunglasses
     ctx.fillStyle = '#1e293b';
     ctx.beginPath(); ctx.roundRect(-4, -6, 12, 10, 3); ctx.roundRect(10, -6, 12, 10, 3); ctx.fill();
 
@@ -486,7 +433,6 @@ class Boss {
       }
     }
 
-    // Update projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
       proj.x += proj.vx; proj.y += proj.vy; proj.life--;
@@ -496,7 +442,6 @@ class Boss {
       if (proj.life <= 0) this.projectiles.splice(i, 1);
     }
 
-    // Boss body hits
     for (const p of players) {
       if (PhysicsEngine.checkAABB(this, p)) {
         if (p.vy > 0 && p.y + p.height - p.vy <= this.y + 25) {
@@ -634,6 +579,7 @@ class Game {
     this.bossNameEl = document.getElementById('boss-name');
     this.bossHealthEl = document.getElementById('boss-health');
     this.hudLevelTitle = document.getElementById('hud-level-title');
+    this.mobileControlsEl = document.getElementById('mobile-controls');
 
     this.mainMenu = document.getElementById('main-menu');
     this.coopModal = document.getElementById('coop-modal');
@@ -753,16 +699,33 @@ class Game {
     document.querySelectorAll('.btn-back').forEach(btn => btn.addEventListener('click', () => this.showScreen(this.mainMenu)));
     document.querySelector('.btn-back-coop').addEventListener('click', () => this.showScreen(this.coopModal));
 
-    if ('ontouchstart' in window) {
-      document.getElementById('mobile-controls').classList.remove('hidden');
-      const bindTouch = (id, keyName) => {
-        const el = document.getElementById(id);
-        el.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[keyName] = true; });
-        el.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[keyName] = false; });
+    // Universal Mobile & Touch Controls Setup
+    const bindTouch = (id, keyName) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      
+      const press = (e) => {
+        if (e.cancelable) e.preventDefault();
+        sounds.init();
+        this.keys[keyName] = true;
       };
-      bindTouch('btn-left', 'KeyA'); bindTouch('btn-right', 'KeyD');
-      bindTouch('btn-jump', 'KeyW'); bindTouch('btn-ability', 'KeyS');
-    }
+      const release = (e) => {
+        if (e.cancelable) e.preventDefault();
+        this.keys[keyName] = false;
+      };
+
+      el.addEventListener('touchstart', press, { passive: false });
+      el.addEventListener('touchend', release, { passive: false });
+      el.addEventListener('pointerdown', press);
+      el.addEventListener('pointerup', release);
+      el.addEventListener('mousedown', press);
+      el.addEventListener('mouseup', release);
+    };
+
+    bindTouch('btn-left', 'KeyA');
+    bindTouch('btn-right', 'KeyD');
+    bindTouch('btn-jump', 'KeyW');
+    bindTouch('btn-ability', 'KeyS');
   }
 
   showScreen(screenEl) {
@@ -773,9 +736,13 @@ class Game {
 
     if (screenEl) {
       screenEl.classList.remove('hidden'); screenEl.classList.add('active');
-      this.hud.classList.add('hidden'); this.gameState = 'menu';
+      this.hud.classList.add('hidden');
+      this.mobileControlsEl.classList.add('hidden');
+      this.gameState = 'menu';
     } else {
-      this.hud.classList.remove('hidden'); this.gameState = 'playing';
+      this.hud.classList.remove('hidden');
+      this.mobileControlsEl.classList.remove('hidden'); // SHOW MOBILE CONTROLS WHEN PLAYING
+      this.gameState = 'playing';
     }
   }
 

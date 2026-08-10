@@ -519,84 +519,20 @@ code {
   align-self: flex-end;
 }
 
-/* Online Modal Tabs & Codebox */
-.online-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0,0,0,0.3);
-  color: #fff;
-  cursor: pointer;
-  font-family: var(--font-heading);
-  font-weight: 700;
-}
-
-.tab-btn.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.tab-content.hidden { display: none; }
-
-.code-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #090514;
-  border: 2px dashed var(--color-gold);
-  border-radius: 12px;
-  padding: 12px 18px;
-  font-size: 1.4rem;
-  font-weight: 900;
-  font-family: monospace;
-  direction: ltr;
-  margin: 12px 0;
-}
-
-.btn-copy {
-  background: var(--color-gold);
-  color: #000;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.text-input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.4);
-  color: #fff;
-  font-size: 1.2rem;
-  text-align: center;
-  direction: ltr;
-}
-
-.status-msg {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-/* Mobile Controls */
+/* Mobile Controls Overlay */
 .mobile-controls {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
-  right: 16px;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
   display: flex;
   justify-content: space-between;
   pointer-events: none;
-  z-index: 45;
+  z-index: 60;
+}
+
+.mobile-controls.hidden {
+  display: none !important;
 }
 
 .dpad, .action-buttons {
@@ -606,29 +542,33 @@ code {
 }
 
 .m-btn {
-  width: 60px;
-  height: 60px;
+  width: 65px;
+  height: 65px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   color: #fff;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   display: flex;
   justify-content: center;
   align-items: center;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .m-btn:active {
-  background: rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.8);
+  transform: scale(0.92);
 }
 
 .jump-btn, .ability-btn {
   width: auto;
-  padding: 0 20px;
+  padding: 0 24px;
   border-radius: 30px;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-family: var(--font-heading);
   font-weight: 800;
 }
