@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>مغامرات كاكا 2 | Kaka's Adventures 2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Changa:wght@400;600;800;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- PeerJS for WebRTC Online Co-op -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Game Canvas Container -->
+    <div id="canvas-container">
+      <canvas id="gameCanvas"></canvas>
+      
+      <!-- HUD Overlay -->
+      <div id="hud" class="hidden">
+        <div class="hud-top">
+          <div class="player-stats p1-stats">
+            <div class="avatar kaka-avatar">💩</div>
+            <div class="stat-info">
+              <span class="player-name">كاكا (P1)</span>
+              <div class="health-bar"><div id="p1-health" class="health-fill" style="width: 100%;"></div></div>
+            </div>
+          </div>
+          
+          <div class="level-indicator">
+            <span id="hud-level-title">المرحلة 1</span>
+            <div id="hud-goal-icon" title="الهدف: كرسي الحمام">🚽</div>
+          </div>
+          
+          <div id="p2-hud" class="player-stats p2-stats hidden">
+            <div class="avatar bool-avatar">💧</div>
+            <div class="stat-info">
+              <span class="player-name">بول (P2)</span>
+              <div class="health-bar"><div id="p2-health" class="health-fill" style="width: 100%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Boss Health Bar -->
+        <div id="boss-hud" class="boss-hud hidden">
+          <div class="boss-title">
+            <span id="boss-name">وحش الشفاطة العملاق</span>
+          </div>
+          <div class="boss-health-bar">
+            <div id="boss-health" class="boss-health-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Menu Screen -->
+      <div id="main-menu" class="overlay-screen active">
+        <div class="menu-card glass-panel">
+          <div class="logo-container">
+            <div class="logo-badge">الموسم الثاني</div>
+            <h1 class="game-title">مغامرات <span class="glow-text">كاكا 2</span></h1>
+            <p class="game-subtitle">رحلة الوصول إلى كرسي الحمام الذهبي! 🚽✨</p>
+          </div>
+
+          <div class="menu-buttons">
+            <button id="btn-story-mode" class="btn btn-primary pulse">
+              <span class="btn-icon">👑</span>
+              <div class="btn-text">
+                <span class="btn-title">طور القصة (فردي)</span>
+                <span class="btn-sub">مغامرة كاكا للوصول للعرش</span>
+              </div>
+            </button>
+
+            <button id="btn-coop-mode" class="btn btn-secondary">
+              <span class="btn-icon">👥</span>
+              <div class="btn-text">
+                <span class="btn-title">طور القصة التعاوني</span>
+                <span class="btn-sub">كاكا & بول (محلي أو أونلاين)</span>
+              </div>
+            </button>
+
+            <button id="btn-level-select" class="btn btn-accent">
+              <span class="btn-icon">🗺️</span>
+              <div class="btn-text">
+                <span class="btn-title">طور المراحل</span>
+                <span class="btn-sub">اختيار من 10 مراحل متنوعة</span>
+              </div>
+            </button>
+          </div>
+
+          <div class="controls-guide-mini">
+            <div class="guide-item">
+              <span class="char-tag p1">كاكا 💩</span>
+              <code>WASD</code> / <code>Space</code>
+            </div>
+            <div class="guide-item">
+              <span class="char-tag p2">بول 💧</span>
+              <code>الأسهم ⬆️⬇️⬅️➡️</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Co-op Mode Options Modal -->
+      <div id="coop-modal" class="overlay-screen hidden">
+        <div class="menu-card glass-panel text-center">
+          <h2>👥 اختر نوع اللعب التعاوني</h2>
+          <p class="subtitle">المغامرة أمتع مع صديقك!</p>
+
+          <div class="coop-options">
+            <button id="btn-local-coop" class="btn btn-outline">
+              <span class="btn-icon">🎮</span>
+              <div class="btn-text">
+                <span class="btn-title">لعب محلي (نفس الكمبيوتر)</span>
+                <span class="btn-sub">كاكا (WASD) - بول (الأسهم)</span>
+              </div>
+            </button>
+
+            <button id="btn-online-coop" class="btn btn-outline">
+              <span class="btn-icon">🌐</span>
+              <div class="btn-text">
+                <span class="btn-title">لعب أونلاين (P2P مباشر)</span>
+                <span class="btn-sub">إنشاء أو انضمام عبر كود الدعوة</span>
+              </div>
+            </button>
+          </div>
+
+          <button class="btn btn-small btn-back mt-4">رجوع للقائمة</button>
+        </div>
+      </div>
+
+      <!-- Online Co-op Lobby Modal -->
+      <div id="online-lobby-modal" class="overlay-screen hidden">
+        <div class="menu-card glass-panel text-center">
+          <h2>🌐 اللعب الجماعي أونلاين</h2>
+          <p class="subtitle">دون الحاجة إلى سيرفر - اتصل بصديقك مباشرة!</p>
+
+          <div class="online-tabs">
+            <button id="tab-host" class="tab-btn active">إنشاء غرفة (Host)</button>
+            <button id="tab-join" class="tab-btn">انضمام لغرفة (Join)</button>
+          </div>
+
+          <!-- Host Section -->
+          <div id="host-section" class="tab-content active">
+            <p>أرسل هذا الكود لصديقك للانضمام معك:</p>
+            <div class="code-box">
+              <span id="room-code-display">جاري توليد الكود...</span>
+              <button id="btn-copy-code" class="btn-copy">نسخ 📋</button>
+            </div>
+            <div id="host-status" class="status-msg">في انتظار اتصال اللاعب الثاني (بول)... ⏳</div>
+            <button id="btn-start-online-host" class="btn btn-primary mt-4 disabled" disabled>بدء اللعبة الان 🚀</button>
+          </div>
+
+          <!-- Join Section -->
+          <div id="join-section" class="tab-content hidden">
+            <p>أدخل كود الدعوة الخاص بصديقك:</p>
+            <input type="text" id="room-code-input" placeholder="مثال: KAKA-9823" class="text-input">
+            <button id="btn-connect-join" class="btn btn-primary mt-3">اتصال بالغرفة 🔗</button>
+            <div id="join-status" class="status-msg mt-2"></div>
+          </div>
+
+          <button class="btn btn-small btn-back-coop mt-4">رجوع</button>
+        </div>
+      </div>
+
+      <!-- Level Select Screen -->
+      <div id="level-select-modal" class="overlay-screen hidden">
+        <div class="menu-card glass-panel wide-card text-center">
+          <h2>🗺️ اختر المرحلة (10 مراحل)</h2>
+          <p class="subtitle">كل 3 مراحل يوجد زعيم قوي وكتسين قصة!</p>
+
+          <div id="level-grid" class="level-grid">
+            <!-- 10 levels generated dynamically -->
+          </div>
+
+          <button class="btn btn-small btn-back mt-4">رجوع للقائمة</button>
+        </div>
+      </div>
+
+      <!-- Cutscene Screen -->
+      <div id="cutscene-screen" class="overlay-screen hidden">
+        <div class="cutscene-card glass-panel">
+          <div class="cutscene-header">
+            <span id="cutscene-title" class="cutscene-badge">مشهد قصصي</span>
+          </div>
+          <div class="cutscene-visual">
+            <div id="cutscene-illustration" class="illustration-box">
+              <!-- Animated canvas/DOM art for cutscene -->
+            </div>
+          </div>
+          <div class="dialogue-box">
+            <div class="speaker-info">
+              <span id="speaker-avatar" class="speaker-avatar">💩</span>
+              <span id="speaker-name" class="speaker-name">كاكا</span>
+            </div>
+            <p id="dialogue-text" class="dialogue-text">...</p>
+          </div>
+          <button id="btn-next-cutscene" class="btn btn-primary btn-next-scene">المتابعة ⏩</button>
+        </div>
+      </div>
+
+      <!-- Level Complete / Victory Screen -->
+      <div id="victory-modal" class="overlay-screen hidden">
+        <div class="menu-card glass-panel text-center">
+          <div class="victory-icon">🚽✨</div>
+          <h2 id="victory-title" class="glow-text">تم الوصول للكرسي!</h2>
+          <p id="victory-sub">أحسنت! نجحت في غسل العقبات وتجاوز المرحلة.</p>
+          
+          <div class="stars-rating">
+            <span class="star active">⭐</span>
+            <span class="star active">⭐</span>
+            <span class="star active">⭐</span>
+          </div>
+
+          <div class="modal-buttons">
+            <button id="btn-next-level" class="btn btn-primary">المرحلة التالية ⏩</button>
+            <button id="btn-retry-level" class="btn btn-secondary">إعادة المرحلة 🔄</button>
+            <button class="btn btn-accent btn-back">القائمة الرئيسية 🏠</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div id="gameover-modal" class="overlay-screen hidden">
+        <div class="menu-card glass-panel text-center">
+          <div class="gameover-icon">💥</div>
+          <h2>سقطت في البلاعة!</h2>
+          <p>لا تقلق، استجمع قواك وحاول الوصول للكرسي مجدداً!</p>
+
+          <div class="modal-buttons mt-4">
+            <button id="btn-restart-gameover" class="btn btn-primary">إعادة المحاولة 🔄</button>
+            <button class="btn btn-accent btn-back">القائمة الرئيسية 🏠</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Touch Controls overlay -->
+      <div id="mobile-controls" class="mobile-controls hidden">
+        <div class="dpad">
+          <button id="btn-left" class="m-btn">⬅️</button>
+          <button id="btn-right" class="m-btn">➡️</button>
+        </div>
+        <div class="action-buttons">
+          <button id="btn-jump" class="m-btn jump-btn">⬆️ قفز</button>
+          <button id="btn-ability" class="m-btn ability-btn">💥 قوة</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
