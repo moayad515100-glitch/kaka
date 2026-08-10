@@ -121,61 +121,7 @@ class SoundEngine {
 
 const sounds = new SoundEngine();
 
-// 2. NETWORK P2P MANAGER
-class NetworkManager {
-  constructor() {
-    this.peer = null; this.conn = null; this.isHost = false; this.isConnected = false; this.roomCode = '';
-  }
-
-  createRoom(onCodeGenerated, onPeerConnected, onDataReceived) {
-    try {
-      if (typeof Peer === 'undefined') return;
-      this.isHost = true;
-      const randomCode = 'KAKA-' + Math.floor(1000 + Math.random() * 9000);
-      this.roomCode = randomCode;
-      this.peer = new Peer(randomCode);
-
-      this.peer.on('open', (id) => { if (onCodeGenerated) onCodeGenerated(id); });
-      this.peer.on('connection', (connection) => {
-        this.conn = connection;
-        this.setupConnectionListeners(onPeerConnected, onDataReceived);
-      });
-      this.peer.on('error', (err) => console.error('Peer error:', err));
-    } catch (e) {
-      console.warn('Network P2P Warning:', e);
-    }
-  }
-
-  joinRoom(code, onPeerConnected, onDataReceived, onError) {
-    try {
-      if (typeof Peer === 'undefined') return;
-      this.isHost = false;
-      this.roomCode = code.toUpperCase().trim();
-      this.peer = new Peer();
-
-      this.peer.on('open', () => {
-        this.conn = this.peer.connect(this.roomCode);
-        this.setupConnectionListeners(onPeerConnected, onDataReceived);
-      });
-      this.peer.on('error', (err) => { if (onError) onError(err); });
-    } catch (e) {
-      if (onError) onError(e);
-    }
-  }
-
-  setupConnectionListeners(onPeerConnected, onDataReceived) {
-    if (!this.conn) return;
-    this.conn.on('open', () => { this.isConnected = true; if (onPeerConnected) onPeerConnected(); });
-    this.conn.on('data', (data) => { if (onDataReceived) onDataReceived(data); });
-    this.conn.on('close', () => { this.isConnected = false; });
-  }
-
-  send(data) {
-    if (this.conn && this.isConnected) this.conn.send(data);
-  }
-}
-
-// 3. PARTICLE SYSTEM
+// 2. PARTICLE SYSTEM
 class Particle {
   constructor(x, y, vx, vy, color, size, life, shape = 'circle') {
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
@@ -224,7 +170,7 @@ class ParticleSystem {
   draw(ctx) { for (const p of this.particles) p.draw(ctx); }
 }
 
-// 4. PHYSICS ENGINE
+// 3. PHYSICS ENGINE
 class PhysicsEngine {
   static checkAABB(rect1, rect2) {
     return (
@@ -269,7 +215,7 @@ class PhysicsEngine {
   }
 }
 
-// 5. PLAYER CLASS
+// 4. PLAYER CLASS
 class Player {
   constructor(x, y, name, type) {
     this.x = x; this.y = y; this.width = 40; this.height = 40;
@@ -332,7 +278,7 @@ class Player {
 
   takeDamage(amount, particles) {
     if (this.invulnerableTimer > 0) return;
-    this.hp -= amount; this.invulnerableTimer = 60;
+    this.hp -= amount; this.invulnerableTimer = 45;
     sounds.playHurt();
     if (particles) particles.addSplash(this.x + 20, this.y + 20, '#ef4444', 15);
   }
@@ -390,14 +336,14 @@ class Player {
   }
 }
 
-// 6. BOSS CLASS
+// 5. BOSS CLASS (Including Level 10 Computer AI Boss)
 class Boss {
   constructor(type, x, y) {
     this.type = type; this.x = x; this.y = y; this.width = 90; this.height = 90;
     this.vx = 0; this.vy = 0;
-    this.maxHp = type === 1 ? 100 : (type === 2 ? 150 : 200);
+    this.maxHp = type === 1 ? 100 : (type === 2 ? 150 : (type === 4 ? 180 : 200));
     this.hp = this.maxHp;
-    this.name = type === 1 ? "وحش الشفاطة العملاق" : (type === 2 ? "ملكة البكتيريا و الميكروبات" : "ملك رول الحمام المومياء");
+    this.name = type === 1 ? "وحش الشفاطة العملاق" : (type === 2 ? "ملكة البكتيريا و الميكروبات" : (type === 4 ? "منافس العرش: بول الآلي 🤖" : "ملك رول الحمام المومياء"));
     this.timer = 0; this.invulnerableTimer = 0; this.projectiles = []; this.animFrame = 0;
   }
 
@@ -408,7 +354,7 @@ class Boss {
     let target = players[0];
     if (players[1] && Math.abs(players[1].x - this.x) < Math.abs(players[0].x - this.x)) target = players[1];
 
-    if (this.type === 1) {
+    if (this.type === 1) { // Plunger Monster
       if (this.timer % 120 === 0) {
         const angle = Math.atan2(target.y - this.y, target.x - this.x);
         this.projectiles.push({ x: this.x + 45, y: this.y + 45, vx: Math.cos(angle) * 7, vy: Math.sin(angle) * 7, width: 20, height: 20, life: 120, type: 'plunger_dart' });
@@ -417,7 +363,7 @@ class Boss {
       if (this.timer % 200 === 0) { this.vy = -10; this.vx = target.x > this.x ? 4 : -4; }
       this.vy += 0.4; this.y += this.vy; this.x += this.vx;
       if (this.y > 480) { this.y = 480; this.vy = 0; this.vx = 0; }
-    } else if (this.type === 2) {
+    } else if (this.type === 2) { // Germ Queen
       this.y = 200 + Math.sin(this.animFrame * 2) * 40; this.x += Math.sin(this.animFrame) * 3;
       if (this.timer % 140 === 0) {
         for (let i = -1; i <= 1; i++) {
@@ -425,12 +371,24 @@ class Boss {
         }
         sounds.playBossHit();
       }
-    } else if (this.type === 3) {
+    } else if (this.type === 3) { // Paper Mummy
       this.x += Math.sin(this.animFrame * 1.5) * 4;
       if (this.timer % 150 === 0) {
         this.projectiles.push({ x: this.x + (target.x > this.x ? 90 : -30), y: 520, vx: target.x > this.x ? 6 : -6, vy: 0, width: 35, height: 35, life: 180, type: 'paper_boulder' });
         sounds.playBossHit();
       }
+    } else if (this.type === 4) { // Level 10 Computer AI Boss (Bool 🤖)
+      this.vx = target.x > this.x ? 3.5 : -3.5;
+      if (this.timer % 90 === 0) {
+        this.vy = -11; sounds.playPeeJump();
+      }
+      if (this.timer % 110 === 0) {
+        this.projectiles.push({ x: this.x + 45, y: this.y + 45, vx: target.x > this.x ? 6 : -6, vy: -2, width: 25, height: 25, life: 120, type: 'germ_bubble' });
+      }
+      this.vy += 0.5; this.y += this.vy; this.x += this.vx;
+      if (this.y > 480) { this.y = 480; this.vy = 0; }
+      if (this.x < 50) this.x = 50;
+      if (this.x > 1150) this.x = 1150;
     }
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -476,6 +434,11 @@ class Boss {
       ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.roundRect(this.x + 10, this.y + 10, 70, 75, 12); ctx.fill();
       ctx.fillStyle = '#0f172a'; ctx.fillRect(this.x + 20, this.y + 35, 50, 14);
       ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(this.x + 35, this.y + 42, 4, 0, Math.PI * 2); ctx.arc(this.x + 55, this.y + 42, 4, 0, Math.PI * 2); ctx.fill();
+    } else if (this.type === 4) { // Computer AI Boss (Dark Bool 💧)
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath(); ctx.arc(this.x + 45, this.y + 45, 40, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath(); ctx.arc(this.x + 32, this.y + 38, 8, 0, Math.PI * 2); ctx.arc(this.x + 58, this.y + 38, 8, 0, Math.PI * 2); ctx.fill();
     }
 
     for (const proj of this.projectiles) {
@@ -486,26 +449,26 @@ class Boss {
   }
 }
 
-// 7. 10 LEVELS DEFINITIONS
+// 6. 10 LEVELS DEFINITIONS
 const LEVELS = [
   { id: 1, name: "المرحلة 1: حمام القصر", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 1160, y: 220, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#334155' }, { x: 250, y: 460, width: 180, height: 24, color: '#0284c7' }, { x: 500, y: 380, width: 180, height: 24, color: '#d97706' }, { x: 750, y: 300, width: 180, height: 24, color: '#8b5cf6' }, { x: 1100, y: 290, width: 140, height: 24, color: '#fbbf24' } ], hazards: [{ x: 460, y: 555, width: 40, height: 25, type: 'spikes' }], springs: [{ x: 700, y: 555, width: 40, height: 25, isSpring: true }] },
   { id: 2, name: "المرحلة 2: حلبة الفقاعات الصابونية", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 1150, y: 160, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 350, height: 140, color: '#334155' }, { x: 950, y: 580, width: 330, height: 140, color: '#334155' }, { x: 400, y: 440, width: 140, height: 20, color: '#38bdf8', isMoving: true, vx: 2, minX: 380, maxX: 650 }, { x: 720, y: 320, width: 140, height: 20, color: '#f59e0b', isMoving: true, vy: 1.5, minY: 260, maxY: 420 }, { x: 1100, y: 230, width: 150, height: 24, color: '#fbbf24' } ], hazards: [{ x: 350, y: 560, width: 600, height: 30, type: 'drain_water' }], springs: [] },
   { id: 3, name: "المرحلة 3: وحش الشفاطة العملاق 🪠", isBoss: true, bossType: 1, startPos: { p1: { x: 100, y: 500 }, p2: { x: 180, y: 500 } }, toiletGoal: { x: 1150, y: 510, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#1e293b' }, { x: 200, y: 420, width: 160, height: 20, color: '#dc2626' }, { x: 920, y: 420, width: 160, height: 20, color: '#dc2626' }, { x: 540, y: 320, width: 200, height: 20, color: '#f59e0b' } ], hazards: [], springs: [] },
-  { id: 4, name: "المرحلة 4: شلالات أنابيب المياه", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 80, y: 140, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#1e293b' }, { x: 300, y: 460, width: 160, height: 20, color: '#0284c7' }, { x: 600, y: 380, width: 160, height: 20, color: '#0284c7' }, { x: 900, y: 300, width: 160, height: 20, color: '#0284c7' }, { x: 40, y: 210, width: 180, height: 24, color: '#fbbf24' } ], hazards: [{ x: 500, y: 555, width: 100, height: 25, type: 'spikes' }], springs: [{ x: 1100, y: 555, width: 50, height: 25, isSpring: true }] },
-  { id: 5, name: "المرحلة 5: مغسلة الصابون الدوارة", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 1160, y: 160, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 250, height: 140, color: '#334155' }, { x: 320, y: 480, width: 130, height: 20, color: '#ec4899', isMoving: true, vy: 2, minY: 320, maxY: 500 }, { x: 580, y: 360, width: 130, height: 20, color: '#8b5cf6', isMoving: true, vx: 2, minX: 520, maxX: 780 }, { x: 880, y: 280, width: 130, height: 20, color: '#0284c7', isMoving: true, vy: 2, minY: 200, maxY: 380 }, { x: 1120, y: 230, width: 140, height: 24, color: '#fbbf24' } ], hazards: [{ x: 250, y: 560, width: 900, height: 30, type: 'spikes' }], springs: [] },
+  { id: 4, name: "المرحلة 4: شلالات أنابيب المياه", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 60, y: 130, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#1e293b' }, { x: 240, y: 460, width: 150, height: 20, color: '#0284c7' }, { x: 500, y: 370, width: 150, height: 20, color: '#0284c7' }, { x: 760, y: 290, width: 150, height: 20, color: '#0284c7' }, { x: 1020, y: 280, width: 160, height: 20, color: '#0284c7' }, { x: 700, y: 200, width: 150, height: 20, color: '#38bdf8' }, { x: 400, y: 200, width: 150, height: 20, color: '#38bdf8' }, { x: 40, y: 200, width: 160, height: 24, color: '#fbbf24' } ], hazards: [{ x: 450, y: 555, width: 60, height: 25, type: 'spikes' }], springs: [{ x: 1100, y: 555, width: 50, height: 25, isSpring: true }] },
+  { id: 5, name: "المرحلة 5: مغسلة الصابون الدوارة", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 1160, y: 160, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 300, height: 140, color: '#334155' }, { x: 980, y: 580, width: 300, height: 140, color: '#334155' }, { x: 340, y: 480, width: 140, height: 20, color: '#ec4899', isMoving: true, vy: 1.5, minY: 340, maxY: 480 }, { x: 580, y: 360, width: 140, height: 20, color: '#8b5cf6', isMoving: true, vx: 2, minX: 520, maxX: 740 }, { x: 840, y: 280, width: 140, height: 20, color: '#0284c7', isMoving: true, vy: 1.5, minY: 220, maxY: 380 }, { x: 1120, y: 230, width: 140, height: 24, color: '#fbbf24' } ], hazards: [{ x: 300, y: 560, width: 680, height: 30, type: 'spikes' }], springs: [] },
   { id: 6, name: "المرحلة 6: ملكة البكتيريا والميكروبات 🦠", isBoss: true, bossType: 2, startPos: { p1: { x: 100, y: 500 }, p2: { x: 180, y: 500 } }, toiletGoal: { x: 1150, y: 510, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#14532d' }, { x: 180, y: 440, width: 180, height: 20, color: '#22c55e' }, { x: 920, y: 440, width: 180, height: 20, color: '#22c55e' }, { x: 530, y: 340, width: 220, height: 20, color: '#a855f7' } ], hazards: [], springs: [] },
   { id: 7, name: "المرحلة 7: متاهة رولات الحمام", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 1160, y: 120, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#1e293b' }, { x: 200, y: 460, width: 150, height: 20, color: '#f8fafc' }, { x: 450, y: 360, width: 150, height: 20, color: '#f8fafc' }, { x: 700, y: 260, width: 150, height: 20, color: '#f8fafc' }, { x: 950, y: 180, width: 150, height: 20, color: '#f8fafc' }, { x: 1120, y: 190, width: 140, height: 24, color: '#fbbf24' } ], hazards: [{ x: 380, y: 555, width: 60, height: 25, type: 'spikes' }, { x: 850, y: 555, width: 60, height: 25, type: 'spikes' }], springs: [{ x: 400, y: 335, width: 40, height: 25, isSpring: true }] },
   { id: 8, name: "المرحلة 8: بركان الفلاش المطهّر", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 610, y: 100, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#1e293b' }, { x: 150, y: 460, width: 160, height: 20, color: '#ef4444' }, { x: 400, y: 360, width: 160, height: 20, color: '#ef4444' }, { x: 720, y: 360, width: 160, height: 20, color: '#ef4444' }, { x: 970, y: 460, width: 160, height: 20, color: '#ef4444' }, { x: 560, y: 170, width: 160, height: 24, color: '#fbbf24' } ], hazards: [{ x: 500, y: 555, width: 280, height: 25, type: 'spikes' }], springs: [{ x: 1020, y: 435, width: 40, height: 25, isSpring: true }] },
   { id: 9, name: "المرحلة 9: ملك رول الحمام المومياء 🧻", isBoss: true, bossType: 3, startPos: { p1: { x: 100, y: 500 }, p2: { x: 180, y: 500 } }, toiletGoal: { x: 1150, y: 510, width: 60, height: 70 }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#0f172a' }, { x: 160, y: 420, width: 180, height: 20, color: '#f8fafc' }, { x: 940, y: 420, width: 180, height: 20, color: '#f8fafc' }, { x: 530, y: 320, width: 220, height: 20, color: '#fbbf24' } ], hazards: [], springs: [] },
-  { id: 10, name: "المرحلة 10: قاعة العرش الذهبي الأسطوري 👑🚽", isBoss: false, startPos: { p1: { x: 80, y: 520 }, p2: { x: 140, y: 520 } }, toiletGoal: { x: 610, y: 100, width: 70, height: 80, isGolden: true }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#312e81' }, { x: 150, y: 460, width: 180, height: 24, color: '#fbbf24' }, { x: 950, y: 460, width: 180, height: 24, color: '#fbbf24' }, { x: 350, y: 340, width: 160, height: 24, color: '#a855f7' }, { x: 770, y: 340, width: 160, height: 24, color: '#a855f7' }, { x: 550, y: 180, width: 180, height: 28, color: '#fbbf24' } ], hazards: [{ x: 350, y: 555, width: 580, height: 25, type: 'spikes' }], springs: [{ x: 220, y: 435, width: 40, height: 25, isSpring: true }, { x: 1020, y: 435, width: 40, height: 25, isSpring: true }] }
+  { id: 10, name: "المرحلة 10: معركة العرش الذهبي الأسطوري! 🥊👑", isBoss: false, startPos: { p1: { x: 150, y: 520 }, p2: { x: 1050, y: 520 } }, toiletGoal: { x: 610, y: 100, width: 70, height: 80, isGolden: true }, platforms: [ { x: 0, y: 580, width: 1280, height: 140, color: '#312e81' }, { x: 150, y: 460, width: 220, height: 24, color: '#fbbf24' }, { x: 910, y: 460, width: 220, height: 24, color: '#fbbf24' }, { x: 380, y: 340, width: 160, height: 24, color: '#a855f7' }, { x: 740, y: 340, width: 160, height: 24, color: '#a855f7' }, { x: 550, y: 180, width: 180, height: 28, color: '#fbbf24' } ], hazards: [{ x: 370, y: 555, width: 540, height: 25, type: 'spikes' }], springs: [{ x: 220, y: 435, width: 40, height: 25, isSpring: true }, { x: 1020, y: 435, width: 40, height: 25, isSpring: true }] }
 ];
 
-// 8. CUTSCENES SCRIPT DATA
+// 7. CUTSCENES SCRIPT DATA
 const CUTSCENES = {
   1: { title: "المشهد 1: هزيمة وحش الشفاطة!", dialogues: [ { speaker: "كاكا 💩", avatar: "💩", text: "أخيراً! وحش الشفاطة العملاق سقط! كان يحاول شفطنا وإبعادنا عن طريق الكرسي!" }, { speaker: "بول 💧", avatar: "💧", text: "يا لها من معركة حامية! انظر، لقد ترك خلفه مفتاح الحمام الفضي!" }, { speaker: "كاكا 💩", avatar: "💩", text: "ممتاز يا بول! العرش أقرب مما نتخيل، هيا بنا لنواصل الطريق عبر أنابيب الصابون!" } ], bgType: "plunger_boss_defeat" },
   2: { title: "المشهد 2: سقوط ملكة البكتيريا!", dialogues: [ { speaker: "بول 💧", avatar: "💧", text: "احذر! فقاعات الميكروبات بدأت تتبخر بعد هزيمة ملكة البكتيريا!" }, { speaker: "كاكا 💩", avatar: "💩", text: "الحمد لله! لقد أغلقت الطريق بفقاعاتها السامة لفترة طويلة!" }, { speaker: "بول 💧", avatar: "💧", text: "انظر إلى الحائط... إنها خريطة قاعة العرش! كرسي الحمام الذهبي على بعد مراحل قليلة!" }, { speaker: "كاكا 💩", avatar: "💩", text: "إلى الأمام! لا شيء يوقف كاكا وبول عن العرش الأسطوري!" } ], bgType: "germ_boss_defeat" },
   3: { title: "المشهد 3: تفكيك مومياء رول الحمام!", dialogues: [ { speaker: "كاكا 💩", avatar: "💩", text: "تم تفكيك رول المومياء العملاق بالكامل! أصبح الطريق سالكاً!" }, { speaker: "بول 💧", avatar: "💧", text: "اسمع هذا الصدى... إنها المياه المقدسة لكرسي الحمام الذهبي تهمس بالداخل!" }, { speaker: "كاكا 💩", avatar: "💩", text: "المرحلة الأخيرة تفصلنا عن التتويج... تجهز يا صديقي، العرش ينتظرنا!" } ], bgType: "mummy_boss_defeat" },
-  4: { title: "الختام الأسطوري: عرش الكرسي الذهبي! 👑🚽", dialogues: [ { speaker: "كاكا 💩", avatar: "💩", text: "يا للروعة! كرسي الحمام الذهبي الأسطوري! لقد وصلنا أخيراً!" }, { speaker: "بول 💧", avatar: "💧", text: "أجمل سحبة سيفون في التاريخ! لقد أتممنا كافة 10 مراحل بنجاح باهر!" }, { speaker: "كاكا وبول 💩💧", avatar: "👑", text: "شكراً لك أيها البطل على قيادتنا للفوز! أنت الأسطورة الحقيقية!" } ], bgType: "golden_toilet_victory" }
+  4: { title: "الختام الأسطوري: عرش الكرسي الذهبي! 👑🚽", dialogues: [ { speaker: "الملك الفائز 👑", avatar: "👑", text: "يا للروعة! كرسي الحمام الذهبي الأسطوري! لقد انتصرت وفزت بالعرش وحدي!" }, { speaker: "التتويج الأسطوري", avatar: "🏆", text: "أجمل سحبة سيفون في التاريخ! تم التتويج بلقب أسطورة كرسي الحمام الذهبي!" } ], bgType: "golden_toilet_victory" }
 };
 
 class CutsceneManager {
@@ -547,7 +510,7 @@ class CutsceneManager {
     if (bgType === 'plunger_boss_defeat') { icon = "🪠💥💩"; sub = "هزيمة وحش الشفاطة!"; }
     else if (bgType === 'germ_boss_defeat') { icon = "🦠⚡💧"; sub = "تطهير المكان من الميكروبات!"; }
     else if (bgType === 'mummy_boss_defeat') { icon = "🧻👑💩"; sub = "تفكيك مومياء رول الحمام!"; }
-    else if (bgType === 'golden_toilet_victory') { icon = "🚽✨👑"; sub = "التتويج الأسطوري!"; }
+    else if (bgType === 'golden_toilet_victory') { icon = "🚽✨👑"; sub = "التتويج الأسطوري بالعرش!"; }
 
     this.illustrationEl.innerHTML = `
       <div style="text-align: center; animation: float-anim 3s ease-in-out infinite;">
@@ -564,7 +527,7 @@ class CutsceneManager {
   }
 }
 
-// 9. MAIN GAME ENGINE & CONTROLLER
+// 8. MAIN GAME ENGINE & CONTROLLER
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -582,8 +545,6 @@ class Game {
     this.mobileControlsEl = document.getElementById('mobile-controls');
 
     this.mainMenu = document.getElementById('main-menu');
-    this.coopModal = document.getElementById('coop-modal');
-    this.onlineLobbyModal = document.getElementById('online-lobby-modal');
     this.levelSelectModal = document.getElementById('level-select-modal');
     this.cutsceneScreen = document.getElementById('cutscene-screen');
     this.victoryModal = document.getElementById('victory-modal');
@@ -593,10 +554,10 @@ class Game {
     this.gameMode = 'story';
     this.currentLevelId = 1;
     this.unlockedLevel = parseInt(localStorage.getItem('kaka2_unlocked') || '1', 10);
+    this.pvpWinner = null;
 
     this.players = []; this.boss = null; this.currentLevel = null;
     this.particles = new ParticleSystem(); this.keys = {};
-    this.net = new NetworkManager();
 
     this.cutsceneManager = new CutsceneManager(
       this.cutsceneScreen,
@@ -622,80 +583,20 @@ class Game {
       this.keys[e.code] = false; this.keys[e.key] = false;
     });
 
+    // Single Player Story
     document.getElementById('btn-story-mode').addEventListener('click', () => {
-      this.gameMode = 'story'; this.startLevel(1);
+      this.gameMode = 'story';
+      this.startLevel(1);
     });
 
+    // Direct Local Co-op (No Online)
     document.getElementById('btn-coop-mode').addEventListener('click', () => {
-      this.showScreen(this.coopModal);
+      this.gameMode = 'coop_local';
+      this.startLevel(1);
     });
 
     document.getElementById('btn-level-select').addEventListener('click', () => {
       this.renderLevelGrid(); this.showScreen(this.levelSelectModal);
-    });
-
-    // تشغيل اللعب التعاوني المحلي (نفس الجهاز)
-    document.getElementById('btn-local-coop').addEventListener('click', () => {
-      this.gameMode = 'coop_local';
-      this.showScreen(null); // إخفاء القوائم وتنشيط نمط اللعب
-      this.startLevel(1);
-    });
-
-    document.getElementById('btn-online-coop').addEventListener('click', () => {
-      this.showScreen(this.onlineLobbyModal);
-      if (!this.net.peer) {
-        this.net.createRoom(
-          (code) => { const el = document.getElementById('room-code-display'); if (el) el.textContent = code; },
-          () => {
-            const statusEl = document.getElementById('host-status'); if (statusEl) statusEl.textContent = 'متصل! اللاعب الثاني متواجد الآن 🟢';
-            const startBtn = document.getElementById('btn-start-online-host'); if (startBtn) { startBtn.classList.remove('disabled'); startBtn.disabled = false; }
-          },
-          (data) => this.handleNetworkData(data)
-        );
-      }
-    });
-
-    const tabHost = document.getElementById('tab-host');
-    const tabJoin = document.getElementById('tab-join');
-    const hostSection = document.getElementById('host-section');
-    const joinSection = document.getElementById('join-section');
-
-    tabHost.addEventListener('click', () => {
-      tabHost.classList.add('active'); tabJoin.classList.remove('active');
-      hostSection.classList.remove('hidden'); joinSection.classList.add('hidden');
-    });
-
-    tabJoin.addEventListener('click', () => {
-      tabJoin.classList.add('active'); tabHost.classList.remove('active');
-      joinSection.classList.remove('hidden'); hostSection.classList.add('hidden');
-    });
-
-    document.getElementById('btn-copy-code').addEventListener('click', () => {
-      const code = document.getElementById('room-code-display').textContent;
-      navigator.clipboard.writeText(code);
-      document.getElementById('btn-copy-code').textContent = 'تم النسخ! ✓';
-      setTimeout(() => document.getElementById('btn-copy-code').textContent = 'نسخ 📋', 2000);
-    });
-
-    // تشغيل اللعب أونلاين للمستضيف (Host)
-    document.getElementById('btn-start-online-host').addEventListener('click', () => {
-      this.gameMode = 'coop_online';
-      this.showScreen(null); // إخفاء القوائم وتنشيط نمط اللعب
-      this.startLevel(1);
-      this.net.send({ type: 'start_game', levelId: 1 });
-    });
-
-    document.getElementById('btn-connect-join').addEventListener('click', () => {
-      const codeInput = document.getElementById('room-code-input').value;
-      const statusEl = document.getElementById('join-status');
-      statusEl.textContent = 'جاري الاتصال... ⏳';
-
-      this.net.joinRoom(
-        codeInput,
-        () => { statusEl.textContent = 'تم الاتصال بنجاح! 🟢'; },
-        (data) => this.handleNetworkData(data),
-        () => { statusEl.textContent = 'فشل الاتصال! تحقق من كود الغرفة. ❌'; }
-      );
     });
 
     document.getElementById('btn-next-level').addEventListener('click', () => this.startLevel(this.currentLevelId + 1));
@@ -703,9 +604,8 @@ class Game {
     document.getElementById('btn-restart-gameover').addEventListener('click', () => this.startLevel(this.currentLevelId));
 
     document.querySelectorAll('.btn-back').forEach(btn => btn.addEventListener('click', () => this.showScreen(this.mainMenu)));
-    document.querySelector('.btn-back-coop').addEventListener('click', () => this.showScreen(this.coopModal));
 
-    // Universal Mobile & Touch Controls Setup
+    // Mobile / Touch controls
     const bindTouch = (id, keyName) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -735,9 +635,9 @@ class Game {
   }
 
   showScreen(screenEl) {
-    [this.mainMenu, this.coopModal, this.onlineLobbyModal, this.levelSelectModal,
+    [this.mainMenu, this.levelSelectModal,
      this.cutsceneScreen, this.victoryModal, this.gameoverModal].forEach(s => {
-      s.classList.add('hidden'); s.classList.remove('active');
+      if (s) { s.classList.add('hidden'); s.classList.remove('active'); }
     });
 
     if (screenEl) {
@@ -747,7 +647,7 @@ class Game {
       this.gameState = 'menu';
     } else {
       this.hud.classList.remove('hidden');
-      this.mobileControlsEl.classList.remove('hidden'); // SHOW MOBILE CONTROLS WHEN PLAYING
+      this.mobileControlsEl.classList.remove('hidden');
       this.gameState = 'playing';
     }
   }
@@ -760,12 +660,12 @@ class Game {
       card.className = `level-card ${isLocked ? 'locked' : ''} ${lvl.isBoss ? 'boss-level' : ''}`;
       card.innerHTML = `
         <div class="level-num">${lvl.id}</div>
-        <div class="level-badge">${lvl.isBoss ? 'زعيم ⚔️' : (lvl.id === 10 ? 'العرش 👑' : 'عادي')}</div>
+        <div class="level-badge">${lvl.isBoss ? 'زعيم ⚔️' : (lvl.id === 10 ? 'معركة العرش 🥊' : 'عادي')}</div>
         <div class="stars-row">${isLocked ? '🔒' : '⭐⭐⭐'}</div>
       `;
       if (!isLocked) {
         card.addEventListener('click', () => {
-          this.gameMode = 'level_select'; this.startLevel(lvl.id);
+          this.startLevel(lvl.id);
         });
       }
       grid.appendChild(card);
@@ -776,18 +676,25 @@ class Game {
     if (levelId > 10) levelId = 10;
     this.currentLevelId = levelId;
     this.currentLevel = LEVELS.find(l => l.id === levelId) || LEVELS[0];
+    this.pvpWinner = null;
 
     this.players = [ new Player(this.currentLevel.startPos.p1.x, this.currentLevel.startPos.p1.y, "كاكا", "kaka") ];
 
-    if (this.gameMode === 'coop_local' || this.gameMode === 'coop_online') {
+    if (this.gameMode === 'coop_local') {
       this.players.push(new Player(this.currentLevel.startPos.p2.x, this.currentLevel.startPos.p2.y, "بول", "bool"));
       this.p2HudEl.classList.remove('hidden');
     } else {
       this.p2HudEl.classList.add('hidden');
     }
 
+    // Boss initialization
     if (this.currentLevel.isBoss) {
       this.boss = new Boss(this.currentLevel.bossType, 600, 200);
+      this.bossHudEl.classList.remove('hidden');
+      this.bossNameEl.textContent = this.boss.name;
+    } else if (levelId === 10 && this.gameMode === 'story') {
+      // Level 10 Single Player AI Boss (Dark Bool 🤖)
+      this.boss = new Boss(4, 600, 200);
       this.bossHudEl.classList.remove('hidden');
       this.bossNameEl.textContent = this.boss.name;
     } else {
@@ -799,16 +706,6 @@ class Game {
     this.showScreen(null);
   }
 
-  handleNetworkData(data) {
-    if (data.type === 'start_game') {
-      this.gameMode = 'coop_online';
-      this.showScreen(null); // إخفاء القوائم تلقائياً للاعب الثاني لبدء اللعبة
-      this.startLevel(data.levelId);
-    } else if (data.type === 'p2_input' && this.players[1]) {
-      this.players[1].remoteKeys = data.keys;
-    }
-  }
-
   gameLoop() {
     requestAnimationFrame(() => this.gameLoop());
     if (this.gameState === 'playing') this.update();
@@ -816,9 +713,9 @@ class Game {
   }
 
   update() {
+    // Update players physics
     this.players.forEach((p, idx) => {
-      const pKeys = (idx === 1 && p.remoteKeys) ? p.remoteKeys : this.keys;
-      p.update(pKeys, this.particles);
+      p.update(this.keys, this.particles);
       PhysicsEngine.handlePlayerPlatforms(p, this.currentLevel.platforms);
 
       if (PhysicsEngine.checkHazards(p, this.currentLevel.hazards) || p.y > 680) {
@@ -830,37 +727,72 @@ class Game {
         }
       }
 
+      // Check Toilet Goal reach
       if (PhysicsEngine.checkToiletGoal(p, this.currentLevel.toiletGoal)) {
-        this.onLevelComplete();
+        if (this.currentLevelId === 10 && this.gameMode === 'coop_local') {
+          // If in Level 10 Co-op, toilet is only claimed if opponent is knocked out!
+          if (this.players[0].hp > 0 && this.players[1].hp <= 0) {
+            this.pvpWinner = "كاكا 💩";
+            this.onLevelComplete();
+          } else if (this.players[1].hp > 0 && this.players[0].hp <= 0) {
+            this.pvpWinner = "بول 💧";
+            this.onLevelComplete();
+          }
+        } else if (this.boss === null) {
+          this.onLevelComplete();
+        }
       }
     });
 
+    // PVP PLAYER VS PLAYER FIGHT IN LEVEL 10 CO-OP
+    if (this.currentLevelId === 10 && this.gameMode === 'coop_local' && this.players.length === 2) {
+      const p1 = this.players[0];
+      const p2 = this.players[1];
+
+      // Direct player collisions & attacks
+      if (PhysicsEngine.checkAABB(p1, p2)) {
+        // P1 jumping on P2
+        if (p1.vy > 0 && p1.y + p1.height - p1.vy <= p2.y + 15) {
+          p1.vy = -11;
+          p2.takeDamage(25, this.particles);
+        }
+        // P2 jumping on P1
+        else if (p2.vy > 0 && p2.y + p2.height - p2.vy <= p1.y + 15) {
+          p2.vy = -11;
+          p1.takeDamage(25, this.particles);
+        }
+      }
+
+      // Check PvP winner knockout
+      if (p1.hp <= 0 && p2.hp > 0) {
+        this.pvpWinner = "بول 💧";
+        this.onLevelComplete();
+      } else if (p2.hp <= 0 && p1.hp > 0) {
+        this.pvpWinner = "كاكا 💩";
+        this.onLevelComplete();
+      }
+    }
+
+    // Update Boss if present
     if (this.boss) {
       this.boss.update(this.players, this.particles);
       this.bossHealthEl.style.width = `${Math.max(0, (this.boss.hp / this.boss.maxHp) * 100)}%`;
       if (this.boss.hp <= 0) {
         sounds.playVictory(); this.boss = null;
         this.bossHudEl.classList.add('hidden');
-        this.onLevelComplete();
+        if (this.currentLevelId !== 10) this.onLevelComplete();
       }
     }
 
     this.particles.update();
 
-    if (this.players.every(p => p.hp <= 0)) {
+    // Normal Game Over check (If all players dead in non-PvP)
+    if (this.currentLevelId !== 10 && this.players.every(p => p.hp <= 0)) {
       this.gameState = 'gameover'; this.showScreen(this.gameoverModal);
     }
 
     if (this.players[0]) this.p1HealthEl.style.width = `${Math.max(0, this.players[0].hp)}%`;
     if (this.players[1]) this.p2HealthEl.style.width = `${Math.max(0, this.players[1].hp)}%`;
-
-    if (this.net.isHost && this.net.isConnected && this.players[1]) {
-      this.net.send({
-        type: 'state_sync',
-        p1: { x: this.players[0].x, y: this.players[0].y, hp: this.players[0].hp },
-        p2: { x: this.players[1].x, y: this.players[1].y, hp: this.players[1].hp }
-      });
-    }
   }
 
   onLevelComplete() {
@@ -887,8 +819,9 @@ class Game {
   onCutsceneFinished() {
     if (this.currentLevelId === 10) {
       this.gameState = 'victory';
-      document.getElementById('victory-title').textContent = 'مبروك! ختمت اللعبة بالكامل! 👑🚽';
-      document.getElementById('victory-sub').textContent = 'أصبحت كابتن كرسي الحمام الذهبي الأسطوري!';
+      const winnerName = this.pvpWinner || "كاكا 💩";
+      document.getElementById('victory-title').textContent = `مبروك! ${winnerName} فاز بالعرش الذهبي! 👑🚽`;
+      document.getElementById('victory-sub').textContent = 'انتصر في معركة العرش الأخيرة وأصبح ملك كرسي الحمام الذهبي!';
       this.showScreen(this.victoryModal);
     } else {
       this.startLevel(this.currentLevelId + 1);
@@ -947,6 +880,14 @@ class Game {
         this.ctx.font = 'bold 12px Changa, sans-serif'; this.ctx.fillStyle = '#fbbf24'; this.ctx.textAlign = 'center';
         this.ctx.fillText(isGold ? '🚽 العرش الذهبي' : '🚽 الكرسي', g.x + g.width / 2, g.y - 10);
         this.ctx.restore();
+      }
+
+      // Draw Level 10 PvP Banner
+      if (this.currentLevelId === 10 && this.gameMode === 'coop_local') {
+        this.ctx.fillStyle = '#ef4444';
+        this.ctx.font = 'bold 20px Changa, sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('⚔️ معركة العرش! كل واحد يبا الكرسي لنفسه! (كاكا ضُد بول) 🥊', 640, 40);
       }
     }
 
